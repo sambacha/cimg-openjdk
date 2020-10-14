@@ -1,23 +1,28 @@
 # vim:set ft=dockerfile:
+# 2020.08 == ubuntu 18.04, August 2020 
+# https://hub.docker.com/r/cimg/base
+FROM cimg/base:2020.08
 
-FROM cimg/base:2020.06
 
 LABEL maintainer="Community & Partner Engineering Team <community-partner@circleci.com>"
 
-ENV JAVA_VERSION 11.0.8
-ENV URL https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.8%2B10/OpenJDK11U-jdk_x64_linux_hotspot_11.0.8_10.tar.gz
-ENV JAVA_HOME /usr/local/jdk-${JAVA_VERSION}
+ENV JAVA_VERSION 11.39+15
+ENV JAVA_HOME=/usr/lib/jvm/zulu-11-amd64
 
-RUN curl -sSL -o java.tar.gz "${URL}" && \
-	sudo mkdir /usr/local/jdk-${JAVA_VERSION} && \
-	sudo tar -xzf java.tar.gz --strip-components=1 -C /usr/local/jdk-${JAVA_VERSION} && \
-	rm java.tar.gz && \
-	sudo ln -s /usr/local/jdk-${JAVA_VERSION}/bin/java /usr/bin/java && \
-	sudo ln -s /usr/local/jdk-${JAVA_VERSION}/bin/javac /usr/bin/javac && \
-	sudo ln -s /usr/local/jdk-${JAVA_VERSION}/bin/javaws /usr/bin/javaws && \
-	# The dual version command is to support OpenJDK 8
-	java --version || java -version && \
-	javac --version || javac -version
+
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
+
+RUN apt-get -qq update && \
+    apt-get -qq -y --no-install-recommends install gnupg software-properties-common locales && \
+    locale-gen en_US.UTF-8 && \
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0x219BD9C9 && \
+    apt-add-repository "deb http://repos.azulsystems.com/ubuntu stable main" && \
+    apt-get -qq update && \
+    apt-get -qq -y dist-upgrade && \
+    apt-get -qq -y --no-install-recommends install zulu-11=11.39+15 && \
+    rm -rf /var/lib/apt/lists/*
+
+
 
 ENV MAVEN_VERSION=3.6.3 \
 	PATH=/opt/apache-maven/bin:$PATH
@@ -36,3 +41,17 @@ RUN dl_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-b
 	rm gradle.zip && \
 	sudo ln -s /opt/gradle-* /opt/gradle && \
 	gradle --version
+
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+LABEL org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.name="Freight Trust Containers" \
+      org.label-schema.description="Secure Build" \
+      org.label-schema.url="https://docker.freighttrust.com/" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/freight-trust/action-docker.git" \
+      org.label-schema.vendor="Freight Trust & Clearing" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.schema-version="1.0"
+      
